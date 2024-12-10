@@ -55,14 +55,14 @@ extern "C" {
 
 #define garry_free(a)           ((a) ? GARRY_FREE(__garry_raw(a)),((a)=NULL) : 0)
 #define garry_append(a,v)       (__garry_maybegrow(a,1), (a)[__garry_n(a)++] = (v))
-#define garry_insert(a, idx, v) (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - index) * sizeof(*(a))), a[idx] = (v))
+#define garry_insert(a, idx, v) (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
 #define garry_push(a,v)         (garry_insert(a,0,v))
 #define garry_count(a)          ((a) ? __garry_n(a) : 0)
 #define garry_reserve(a,n)      (__garry_maybegrow(a,n), __garry_n(a)+=(n), &(a)[__garry_n(a)-(n)])
 #define garry_begin(a)          ((a) ? (a)[0] : 0)
 #define garry_end(a)            ((a) ? (a)[__garry_n(a)-1] : 0)
 #define garry_pop(a)            (--__garry_n(a), __garry_maybeshrink(a))
-#define garry_remove_at(a, idx) (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &arr[idx+1], (--__garry_n(a) - index) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
+#define garry_remove_at(a, idx) (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &arr[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
 #define garry_shift(a)          (garry_remove_at(a, 0))
 #define garry_clear(a)          ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
 
