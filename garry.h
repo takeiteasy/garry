@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #ifdef GARRY_FREE
-#define GARRY_FREE(...) realloc(__VA_ARGS__)
+#define GARRY_FREE(...) free(__VA_ARGS__)
 #endif
 
 #define __garry_raw(a)           ((int *)(void *) (a) - 2)
@@ -66,7 +66,7 @@ extern "C" {
 #define garry_shift(a)          (garry_remove_at(a, 0))
 #define garry_clear(a)          ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
 
-void *__gary_memmove(void *dst, const void* src, size_t n);
+void *__garry_memmove(void *dst, const void* src, size_t n);
 void *__garry_growf(void *arr, int increment, int itemsize);
 void *__garry_shrinkf(void *arr, int itemsize);
 
@@ -99,7 +99,7 @@ void *__garry_growf(void *arr, int increment, int itemsize) {
     int dbl_cur = arr ? 2 * __garry_m(arr) : 0;
     int min_needed = garry_count(arr) + increment;
     int m = dbl_cur > min_needed ? dbl_cur : min_needed;
-    int *p = (int*)realloc(arr ? __garry_raw(arr) : 0, itemsize * m + sizeof(int) * 2);
+    int *p = (int*)GARRY_REALLOC(arr ? __garry_raw(arr) : 0, itemsize * m + sizeof(int) * 2);
     if (p) {
         if (!arr)
             p[1] = 0;
@@ -111,7 +111,7 @@ void *__garry_growf(void *arr, int increment, int itemsize) {
 
 void *__garry_shrinkf(void *arr, int itemsize) {
     int new_capacity = __garry_m(arr) / 2;
-    int *p = (int*)realloc(arr ? __garry_raw(arr) : 0, itemsize * new_capacity + sizeof(int) * 2);
+    int *p = (int*)GARRY_REALLOC(arr ? __garry_raw(arr) : 0, itemsize * new_capacity + sizeof(int) * 2);
     if (p) {
         p[0] = new_capacity;
         return p + 2;
