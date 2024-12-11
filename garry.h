@@ -87,8 +87,8 @@ void *__garry_memmove(void *dst, const void *src, size_t n) {
         while(n--)
             *_dest++ = *_src++;
     else if (dest > src) {
-        cdest += n - 1;
-        csrc += n - 1;
+        _dest += n - 1;
+        _src += n - 1;
         while(n--)
             *_dest-- = *_src--;
     }
