@@ -83,16 +83,16 @@ void *__garry_memmove(void *dst, const void *src, size_t n) {
         return dst;
     char *_dest = dst;
     char *_src = src;
-    if (dest <= src)
-        while(n--)
+    if (dst <= src)
+        while (n--)
             *_dest++ = *_src++;
-    else if (dest > src) {
-        cdest += n - 1;
-        csrc += n - 1;
-        while(n--)
+    else if (dst > src) {
+        _dest += n - 1;
+        _src += n - 1;
+        while (n--)
             *_dest-- = *_src--;
     }
-    return dst
+    return dst;
 }
 
 void *__garry_growf(void *arr, int increment, int itemsize) {
