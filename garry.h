@@ -30,9 +30,6 @@
 extern "C" {
 #endif
 
-#if !defined(GARRY_REALLOC) || !defined(GARRY_FREE)
-#include <stdlib.h> // realloc, free
-#endif
 #include <stddef.h> // size_t
 
 #ifndef GARRY_REALLOC
@@ -43,21 +40,23 @@ extern "C" {
 #define GARRY_FREE(...) free(__VA_ARGS__)
 #endif
 
-#define __garry_raw(a)           ((int*)(void*)(a)-2)
-#define __garry_m(a)             __garry_raw(a)[0]
-#define __garry_n(a)             __garry_raw(a)[1]
-#define __garry_needgrow(a,n)    ((a)==0 || __garry_n(a)+(n) >= __garry_m(a))
-#define __garry_maybegrow(a,n)   (__garry_needgrow(a,(n)) ? __garry_grow(a,n) : 0)
-#define __garry_grow(a,n)        (*((void **)&(a)) = __garry_growf((a), (n), sizeof(*(a))))
+#define __garry_raw(a) ((int *) (a) - 2)
+#define __garry_m(a)   __garry_raw(a)[0]
+#define __garry_n(a)   __garry_raw(a)[1]
+
+#define __garry_needgrow(a,n)  ((a)==0 || __garry_n(a)+n >= __garry_m(a))
+#define __garry_maybegrow(a,n) (__garry_needgrow(a,(n)) ? __garry_grow(a,n) : 0)
+#define __garry_grow(a,n)      __garry_growf((void **) &(a), (n), sizeof(*(a)))
+
 #define __garry_needshrink(a)    (__garry_m(a) > 4 && __garry_n(a) <= __garry_m(a) / 4)
 #define __garry_maybeshrink(a)   (__garry_needshrink(a) ? __garry_shrink(a) : 0)
-#define __garry_shrink(a)        (*((void **)&(a)) = __garry_shrinkf((a), sizeof(*(a))))
+#define __garry_shrink(a)        __garry_shrinkf((void **) &(a), sizeof(*(a)))
 
-#define garry_free(a)           ((a) ? GARRY_FREE(__garry_raw(a)),((a)=NULL) : (void)(a))
+#define garry_free(a)           ((a) ? free(__garry_raw(a)),0 : 0)
 #define garry_append(a,v)       (__garry_maybegrow(a,1), (a)[__garry_n(a)++] = (v))
+#define garry_count(a)          ((a) ? __garry_n(a) : 0)
 #define garry_insert(a, idx, v) (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
 #define garry_push(a,v)         (garry_insert(a,0,v))
-#define garry_count(a)          ((a) ? __garry_n(a) : 0)
 #define garry_reserve(a,n)      (__garry_maybegrow(a,n), __garry_n(a)+=(n), &(a)[__garry_n(a)-(n)])
 #define garry_cdr(a)            (void*)(garry_count(a) > 1 ? &(a+1) : NULL)
 #define garry_car(a)            (void*)((a) ? &(a)[0] : NULL)
@@ -67,9 +66,9 @@ extern "C" {
 #define garry_shift(a)          (garry_remove_at(a, 0))
 #define garry_clear(a)          ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
 
-void *__garry_memmove(void *dst, const void* src, size_t n);
-void *__garry_growf(void *arr, int increment, int itemsize);
-void *__garry_shrinkf(void *arr, int itemsize);
+void  __garry_growf(void **arr, int increment, int itemsize); 
+void  __garry_shrinkf(void **arr, int itemsize);
+void* __garry_memmove(void *dst, const void *src, size_t n);
 
 #ifdef __cplusplus
 }
@@ -77,7 +76,32 @@ void *__garry_shrinkf(void *arr, int itemsize);
 #endif // GARRY_HEADER
 
 #ifdef GARRY_IMPLEMENTATION
-void *__garry_memmove(void *dst, const void *src, size_t n) {
+#include <assert.h>
+#include <stdlib.h>
+
+void __garry_growf(void **arr, int increment, int itemsize) {
+    int m = *arr ? 2 * __garry_m(*arr) + increment : increment + 1;
+    void *p = (void*)GARRY_REALLOC(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
+    assert(p);
+    if (p) {
+        if (!*arr)
+            ((int *)p)[1] = 0;
+        *arr = (void*)((int*)p + 2);
+        __garry_m(*arr) = m;
+    }
+}
+
+void __garry_shrinkf(void **arr, int itemsize) {
+    int m = *arr ? __garry_m(*arr) / 2 : 0;
+    void *p = (void*)GARRY_REALLOC(*arr ? __garry_raw(*arr) : 0, itemsize * m + sizeof(int) * 2);
+    assert(p);
+    if (p) {
+        *arr = (void*)((int*)p + 2);
+        __garry_m(*arr) = m;
+    }
+}
+
+void* __garry_memmove(void *dst, const void *src, size_t n) {
     if (!dst || !src)
         return (void*)0;
     if (!n)
@@ -94,29 +118,5 @@ void *__garry_memmove(void *dst, const void *src, size_t n) {
             *_dest-- = *_src--;
     }
     return dst;
-}
-
-void *__garry_growf(void *arr, int increment, int itemsize) {
-    int dbl_cur = arr ? 2 * __garry_m(arr) : 0;
-    int min_needed = garry_count(arr) + increment;
-    int m = dbl_cur > min_needed ? dbl_cur : min_needed;
-    int *p = (int*)GARRY_REALLOC(arr ? __garry_raw(arr) : 0, itemsize * m + sizeof(int) * 2);
-    if (p) {
-        if (!arr)
-            p[1] = 0;
-        p[0] = m;
-        return p + 2;
-    }
-    return NULL;
-}
-
-void *__garry_shrinkf(void *arr, int itemsize) {
-    int new_capacity = __garry_m(arr) / 2;
-    int *p = (int*)GARRY_REALLOC(arr ? __garry_raw(arr) : 0, itemsize * new_capacity + sizeof(int) * 2);
-    if (p) {
-        p[0] = new_capacity;
-        return p + 2;
-    }
-    return NULL;
 }
 #endif
