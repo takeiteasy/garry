@@ -63,7 +63,7 @@ extern "C" {
 #define garry_car(a)                (void*)((a) ? &(a)[0] : NULL)
 #define garry_last(a)               (void*)((a) ? &(a)[__garry_n(a)-1] : NULL)
 #define garry_pop(a)                (--__garry_n(a), __garry_maybeshrink(a))
-#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &arr[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
+#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &a[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
 #define garry_shift(a)              (garry_remove_at(a, 0))
 #define garry_clear(a)              ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
 
