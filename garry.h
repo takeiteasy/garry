@@ -33,6 +33,7 @@ extern "C" {
 #include <stddef.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef GARRY_REALLOC
 #define GARRY_REALLOC(...) realloc(__VA_ARGS__)
@@ -40,6 +41,10 @@ extern "C" {
 
 #ifndef GARRY_FREE
 #define GARRY_FREE(...) free(__VA_ARGS__)
+#endif
+
+#ifndef list
+#define list garry
 #endif
 
 #define __garry_raw(a)              ((int *) (a) - 2)
@@ -57,20 +62,20 @@ extern "C" {
 #define garry_free(a)               ((a) ? GARRY_FREE(__garry_raw(a)),0 : 0)
 #define garry_append(a, v)          (__garry_maybegrow(a,1), (a)[__garry_n(a)++] = (v))
 #define garry_count(a)              ((a) ? __garry_n(a) : 0)
-#define garry_insert(a, idx, v)     (__garry_maybegrow(a,1), __garry_memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
+#define garry_insert(a, idx, v)     (__garry_maybegrow(a,1), memmove(&a[idx+1], &a[idx], (__garry_n(a)++ - idx) * sizeof(*(a))), a[idx] = (v))
 #define garry_push(a, v)            (garry_insert(a,0,v))
 #define garry_cdr(a)                (void*)(garry_count(a) > 1 ? &(a+1) : NULL)
 #define garry_car(a)                (void*)((a) ? &(a)[0] : NULL)
 #define garry_last(a)               (void*)((a) ? &(a)[__garry_n(a)-1] : NULL)
 #define garry_pop(a)                (--__garry_n(a), __garry_maybeshrink(a))
-#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? __garry_memmove(&a[idx], &arr[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
+#define garry_remove_at(a, idx)     (idx == __garry_n(a)-1 ? memmove(&a[idx], &arr[idx+1], (--__garry_n(a) - idx) * sizeof(*(a))) : garry_pop(a), __garry_maybeshrink(a))
 #define garry_shift(a)              (garry_remove_at(a, 0))
 #define garry_clear(a)              ((a) ? (__garry_n(a) = 0) : 0, __garry_shrink(a))
 
 void  __garry_growf(void **arr, int increment, int itemsize);
 void  __garry_shrinkf(void **arr, int itemsize);
-void* __garry_memmove(void *dst, const void *src, size_t n);
 
+#ifndef MAP_LIST_UD
 #define EVAL0(...) __VA_ARGS__
 #define EVAL1(...) EVAL0(EVAL0(EVAL0(__VA_ARGS__)))
 #define EVAL2(...) EVAL1(EVAL1(EVAL1(__VA_ARGS__)))
@@ -94,6 +99,7 @@ void* __garry_memmove(void *dst, const void *src, size_t n);
 #define MAP_LIST1_UD(f, userdata, x, peek, ...) f(x, userdata) MAP_LIST_NEXT(peek, MAP_LIST0_UD)(f, userdata, peek, __VA_ARGS__)
 
 #define MAP_LIST_UD(f, userdata, ...) EVAL(MAP_LIST1_UD(f, userdata, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+#endif
 
 #define __garry_append_va(v, a)  (garry_append(a, v))
 #define garry_append_va(a, ...) MAP_LIST_UD(__garry_append_va, a, __VA_ARGS__)
@@ -344,24 +350,5 @@ void __garry_shrinkf(void **arr, int itemsize) {
         *arr = (void*)((int*)p + 2);
         __garry_m(*arr) = m;
     }
-}
-
-void* __garry_memmove(void *dst, const void *src, size_t n) {
-    if (!dst || !src)
-        return (void*)0;
-    if (!n)
-        return dst;
-    char *_dest = (char*)dst;
-    char *_src = (char*)src;
-    if (dst <= src)
-        while (n--)
-            *_dest++ = *_src++;
-    else if (dst > src) {
-        _dest += n - 1;
-        _src += n - 1;
-        while (n--)
-            *_dest-- = *_src--;
-    }
-    return dst;
 }
 #endif

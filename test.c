@@ -1,7 +1,6 @@
 #define GARRY_IMPLEMENTATION
 #include "garry.h"
 #include <stdio.h> // printf()
-#include <stdlib.h> // rand()
 
 struct test {
     int a;
